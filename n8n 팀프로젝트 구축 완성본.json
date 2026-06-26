@@ -1,0 +1,730 @@
+{
+  "name": "Codyssey-1차 팀과제",
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f1ee8ab1-549c-4e6d-981c-d7d10275a1bd",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "=",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        752,
+        128
+      ],
+      "id": "da0fa646-f504-4921-84fb-f4f47a450f32",
+      "name": "If",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BBJBTK4B1",
+          "mode": "list",
+          "cachedResultName": "rss-실패-알림"
+        },
+        "text": "=중복된 기사를 수집하여 n8n 실행을 중단합니다.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        976,
+        32
+      ],
+      "id": "9c436c81-7d40-4a86-a929-cd8e10513440",
+      "name": "GUID 중복 알람",
+      "webhookId": "3e284324-a5d2-40d0-8bf1-d9f7b56114d7",
+      "credentials": {
+        "slackApi": {
+          "id": "OI9bA4yHsWgjkFgm",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# Codyssey 1차 팀 과제\n\nn8n을 활용한 뉴스 요약 워크플로우\nMessage a Model 위치 유의",
+        "height": 144,
+        "width": 336
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -80
+      ],
+      "id": "a4302f05-20a6-41c7-9808-31eaa2140e16",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -560,
+        128
+      ],
+      "id": "f0882088-5f15-44c8-8202-cdfed1e5f2cc",
+      "name": "뉴스 수집 스케줄러"
+    },
+    {
+      "parameters": {
+        "url": "https://www.yna.co.kr/rss/industry.xml",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        -336,
+        -64
+      ],
+      "id": "3f4d411b-b4e8-4d4c-9cb4-1421a39ad416",
+      "name": "연합뉴스 RSS"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -96,
+        112
+      ],
+      "id": "ffbf2796-fae8-48cf-8171-20e848483eba",
+      "name": "병합(Merge)"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "38580582-f426-8063-982f-eaa1c46272e5",
+          "mode": "list",
+          "cachedResultName": "AI 뉴스 수집 DB",
+          "cachedResultUrl": "https://app.notion.com/p/38580582f4268063982feaa1c46272e5"
+        },
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "GUID|rich_text",
+              "condition": "equals",
+              "richTextValue": "={{ $('1개 Limit').item.json.guid }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        592,
+        128
+      ],
+      "id": "e9a2baca-a003-4ae1-834a-69071a270893",
+      "name": "뉴스 DB 조회",
+      "alwaysOutputData": true,
+      "executeOnce": false,
+      "retryOnFail": false,
+      "notesInFlow": false,
+      "credentials": {
+        "notionApi": {
+          "id": "ZqVzXCONdnPt8DAX",
+          "name": "Notion account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "당신은 뉴스 요약 전문가입니다.\n\n입력으로 제공된 뉴스 기사 내용을 읽고 핵심 내용을 한국어로 요약하세요.\n\n규칙:\n- 요약은 반드시 3줄 이내로 작성합니다.\n- 각 줄은 한 문장으로 작성합니다.\n- 기사에 없는 내용은 추측하거나 추가하지 않습니다.\n- 광고, 기자 소개, 저작권 문구, 관련 기사 목록은 제외합니다.\n- 핵심 사건, 원인/배경, 영향/전망이 드러나도록 요약합니다.\n- 문장은 간결하고 자연스럽게 작성합니다.\n- 과장된 표현이나 감정적인 표현은 사용하지 않습니다.\n\n출력 형식:\n- 불릿 포인트 3개 이내로 작성합니다."
+            },
+            {
+              "content": "=제목:\n{{ $('Sort').item.json.title }}\n\n본문:\n{{ $('Sort').item.json.content }}\n\n위 뉴스를 요약해 주세요."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        -64,
+        464
+      ],
+      "id": "16a381fe-6485-4657-acf3-63cee8233146",
+      "name": "뉴스 요약 LLM",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "credentials": {
+        "openAiApi": {
+          "id": "1qpLDbBKGEbCH4GP",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "38580582-f426-8063-982f-eaa1c46272e5",
+          "mode": "list",
+          "cachedResultName": "AI 뉴스 수집 DB",
+          "cachedResultUrl": "https://app.notion.com/p/38580582f4268063982feaa1c46272e5"
+        },
+        "title": "=",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "제목|title",
+              "title": "={{ $('Limit').item.json.title }}"
+            },
+            {
+              "key": "요약|rich_text",
+              "textContent": "={{ $('뉴스 요약 LLM').item.json.output[0].content[0].text }}"
+            },
+            {
+              "key": "원문 링크|url",
+              "urlValue": "={{ $('Limit').item.json.link }}"
+            },
+            {
+              "key": "발행일|date",
+              "date": "={{ $('Limit').item.json.pubDate }}"
+            },
+            {
+              "key": "수집일|date",
+              "date": "={{ $('뉴스 수집 스케줄러').item.json.timestamp }}"
+            },
+            {
+              "key": "출처|rich_text",
+              "textContent": "={{ $('Limit').item.json.link }}"
+            },
+            {
+              "key": "GUID|rich_text",
+              "textContent": "={{ $('Limit').item.json.guid }}"
+            },
+            {
+              "key": "감성 태그|select",
+              "selectValue": "={{ $json.output[0].content[0].text }}"
+            },
+            {
+              "key": "이미지|url",
+              "ignoreIfEmpty": true,
+              "urlValue": "={{ $('Upload an asset from file data').item.json.url }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        848,
+        464
+      ],
+      "id": "56d73011-a52b-4c3f-a3d3-0401d921475c",
+      "name": "DB Page 생성",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "credentials": {
+        "notionApi": {
+          "id": "ZqVzXCONdnPt8DAX",
+          "name": "Notion account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        368
+      ],
+      "id": "670d6f4c-6b72-41a4-956b-0ac6a5e20817",
+      "name": "성공 (그냥 패스)"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BBJBTK4B1",
+          "mode": "list",
+          "cachedResultName": "rss-실패-알림"
+        },
+        "text": "=RSS 발송 중 에러가 발생하였습니다. 에러 발생 시간:  {{ $('뉴스 수집 스케줄러').item.json.timestamp }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        1056,
+        560
+      ],
+      "id": "702d649c-6dd7-4e72-94ab-74a713f457f1",
+      "name": "DB 실패 알람",
+      "webhookId": "3e284324-a5d2-40d0-8bf1-d9f7b56114d7",
+      "credentials": {
+        "slackApi": {
+          "id": "OI9bA4yHsWgjkFgm",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-nano",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-NANO"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "당신은 뉴스 감정 분석 전문가입니다.\n\n입력된 뉴스 제목과 요약 내용을 보고, 뉴스의 전반적인 논조와 영향도를 기준으로 감정 태그를 분류하세요.\n\n분류 기준:\n- 긍정: 성장, 성과, 투자, 개선, 출시, 협력, 수상, 기대 효과 등 긍정적 영향이 더 큰 기사\n- 부정: 사고, 손실, 규제, 해킹, 갈등, 실패, 하락, 우려, 위험 등 부정적 영향이 더 큰 기사\n\n규칙:\n- 반드시 긍정 또는 부정 중 하나만 출력하세요.\n- 설명, 문장, 마크다운, 따옴표 없이 태그 하나만 출력하세요.\n- 중립적인 기사라도 전체적으로 더 가까운 방향을 선택하세요."
+            },
+            {
+              "content": "=제목:\n{{ $('Limit').item.json.title }}\n\n본문:\n{{ $json.output[0].content[0].text }}\n\n위 뉴스의 감정(긍정/부정)을 분석 해주세요."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        576,
+        464
+      ],
+      "id": "b684f4f1-70b3-4f32-93b6-6ad35836a0e1",
+      "name": "감정 분석 태그 LLM",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "credentials": {
+        "openAiApi": {
+          "id": "1qpLDbBKGEbCH4GP",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-image-1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-IMAGE-1-MINI"
+        },
+        "prompt": "=당신은 뉴스 썸네일 이미지 프롬프트를 작성하는 전문가입니다.\n\n규칙:\n- 실제 인물, 특정 기업 로고, 언론사 로고, 저작권이 있는 캐릭터는 직접 묘사하지 않습니다.\n- 기사 내용을 과장하거나 사실과 다르게 표현하지 않습니다.\n- 폭력적, 선정적, 혐오적, 자극적인 이미지는 만들지 않습니다.\n- 뉴스의 핵심 주제를 상징적으로 표현합니다.\n\nNews title:\n{{ $('Limit').item.json.title }}\n\nNews summary:\n{{ $json.output[0].content[0].text }}\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        240,
+        464
+      ],
+      "id": "d04964e2-76bb-437a-a4de-7dd52616fb57",
+      "name": "Generate an image",
+      "credentials": {
+        "openAiApi": {
+          "id": "1qpLDbBKGEbCH4GP",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "uploadFile",
+        "additionalFieldsFile": {}
+      },
+      "type": "n8n-nodes-cloudinary.cloudinary",
+      "typeVersion": 2,
+      "position": [
+        416,
+        464
+      ],
+      "id": "7dbe9b7f-7074-4fa2-862f-242825ca6c7a",
+      "name": "Upload an asset from file data",
+      "credentials": {
+        "cloudinaryApi": {
+          "id": "dCIv6h48aUIh4BKx",
+          "name": "Cloudinary account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://techcrunch.com/category/artificial-intelligence/feed/",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        -336,
+        128
+      ],
+      "id": "4966fb48-9e65-4e6d-80b0-93882d2e4f47",
+      "name": "TechCrunch AI"
+    },
+    {
+      "parameters": {
+        "url": "https://venturebeat.com/category/ai/feed/",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        -336,
+        320
+      ],
+      "id": "a194fe75-25ef-42d9-9778-12d265c0d7c2",
+      "name": "VentureBeat AI"
+    },
+    {
+      "parameters": {
+        "type": "random"
+      },
+      "type": "n8n-nodes-base.sort",
+      "typeVersion": 1,
+      "position": [
+        256,
+        128
+      ],
+      "id": "d2d80488-23fd-4d86-ad9e-c1a14c6f8fca",
+      "name": "Sort"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        432,
+        128
+      ],
+      "id": "9510b609-9eac-4507-b8e4-a7201def9391",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "67d50f97-9201-4b70-97e0-6f8a9f3dd412",
+              "leftValue": "={{ $json.content }}",
+              "rightValue": "ai",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "a15d62d0-c9f4-4802-897e-9de311981c82",
+              "leftValue": "={{ $json.content }}",
+              "rightValue": "인공지능",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "ec9ab8f3-1a27-4fc6-a495-692fdc48329e",
+              "leftValue": "={{ $json.content }}",
+              "rightValue": "IT",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        96,
+        128
+      ],
+      "id": "519ca0ea-eb58-45fd-a472-78c2127b1b14",
+      "name": "Filter"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "If": {
+      "main": [
+        [
+          {
+            "node": "GUID 중복 알람",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "뉴스 요약 LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "뉴스 수집 스케줄러": {
+      "main": [
+        [
+          {
+            "node": "VentureBeat AI",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "TechCrunch AI",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "연합뉴스 RSS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "연합뉴스 RSS": {
+      "main": [
+        [
+          {
+            "node": "병합(Merge)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "병합(Merge)": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "뉴스 DB 조회": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "뉴스 요약 LLM": {
+      "main": [
+        [
+          {
+            "node": "Generate an image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB Page 생성": {
+      "main": [
+        [
+          {
+            "node": "성공 (그냥 패스)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "DB 실패 알람",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "감정 분석 태그 LLM": {
+      "main": [
+        [
+          {
+            "node": "DB Page 생성",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate an image": {
+      "main": [
+        [
+          {
+            "node": "Upload an asset from file data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload an asset from file data": {
+      "main": [
+        [
+          {
+            "node": "감정 분석 태그 LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TechCrunch AI": {
+      "main": [
+        [
+          {
+            "node": "병합(Merge)",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "VentureBeat AI": {
+      "main": [
+        [
+          {
+            "node": "병합(Merge)",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Sort": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "뉴스 DB 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Sort",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "1586cfb6-a242-44fe-8934-3fac0619b306",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "54ea833d53719b164cdb9530534749272bda803183d688a5dd061a1353ab13a0"
+  },
+  "nodeGroups": [],
+  "id": "MjhyZAkwPedM9Yop",
+  "tags": [
+    {
+      "updatedAt": "2026-06-22T13:44:27.113Z",
+      "createdAt": "2026-06-22T13:44:27.113Z",
+      "id": "5qDahictvhLz2U1T",
+      "name": "team-project"
+    },
+    {
+      "updatedAt": "2026-06-22T13:44:18.509Z",
+      "createdAt": "2026-06-22T13:44:18.509Z",
+      "id": "qQAJ6Y1soyK05kL8",
+      "name": "production"
+    }
+  ]
+}
