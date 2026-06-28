@@ -1,0 +1,459 @@
+{
+  "name": "Codyssey_1차_박세진_(뉴스 선정 기준 개선)",
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f1ee8ab1-549c-4e6d-981c-d7d10275a1bd",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "=",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1024,
+        -48
+      ],
+      "id": "95017d90-9d42-43f3-ae99-93117d1b118f",
+      "name": "If",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "content": "# Codyssey 1차 팀 과제\n\n개선사항 \n병합 다음 코드를 추가하열 여러개의 신문중 AI관련 키워드('AI', '인공지능', 'LLM', 'ChatGPT', '챗GPT','딥러닝', '머신러닝' 등)가 가잠 많이 포함된 기사를 뽑아 출력\n\n",
+        "height": 432,
+        "width": 336
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        368,
+        -304
+      ],
+      "id": "3e961ff7-5271-4a51-9115-f7251f4a5bed",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -192,
+        -48
+      ],
+      "id": "e6795a98-864a-4b09-af63-9b99366371ab",
+      "name": "뉴스 수집 스케줄러"
+    },
+    {
+      "parameters": {
+        "url": "https://rss.donga.com/total.xml",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        32,
+        -240
+      ],
+      "id": "608bb7f0-432a-47bf-bcbc-bae0859a63f9",
+      "name": "연합뉴스 RSS"
+    },
+    {
+      "parameters": {
+        "url": "https://rss.donga.com/economy.xml",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        32,
+        -48
+      ],
+      "id": "774031b8-2b4c-4350-ada2-2794e80f96de",
+      "name": "동아 RSS"
+    },
+    {
+      "parameters": {
+        "url": "https://news.sbs.co.kr/news/SectionRssFeed.do?sectionId=02&plink=RSSREADER",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        32,
+        144
+      ],
+      "id": "da5ef2a8-9055-4168-8708-be67ea223adf",
+      "name": "SBS RSS"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        256,
+        -64
+      ],
+      "id": "77c6ac07-d4cf-4712-bab0-353e065456af",
+      "name": "병합(Merge)"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "38580582-f426-8063-982f-eaa1c46272e5",
+          "mode": "list",
+          "cachedResultName": "AI 뉴스 수집 DB",
+          "cachedResultUrl": "https://app.notion.com/p/38580582f4268063982feaa1c46272e5"
+        },
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "GUID|rich_text",
+              "condition": "equals",
+              "richTextValue": "={{ $('1개 Limit').item.json.guid }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        736,
+        -48
+      ],
+      "id": "21eee5f4-841b-4ee1-b3a2-b8527987dffc",
+      "name": "뉴스 DB 조회",
+      "alwaysOutputData": true,
+      "executeOnce": false,
+      "retryOnFail": false,
+      "notesInFlow": false,
+      "credentials": {
+        "notionApi": {
+          "id": "n8QisCZzdXAoSjVb",
+          "name": "Notion account 2"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "당신은 뉴스 요약 전문가입니다.\n\n입력으로 제공된 뉴스 기사 내용을 읽고 핵심 내용을 한국어로 요약하세요.\n\n규칙:\n- 요약은 반드시 3줄 이내로 작성합니다.\n- 각 줄은 한 문장으로 작성합니다.\n- 기사에 없는 내용은 추측하거나 추가하지 않습니다.\n- 광고, 기자 소개, 저작권 문구, 관련 기사 목록은 제외합니다.\n- 핵심 사건, 원인/배경, 영향/전망이 드러나도록 요약합니다.\n- 문장은 간결하고 자연스럽게 작성합니다.\n- 과장된 표현이나 감정적인 표현은 사용하지 않습니다.\n\n출력 형식:\n- 불릿 포인트 3개 이내로 작성합니다."
+            },
+            {
+              "content": "=제목:\n{{ $('1개 Limit').item.json.title }}\n\n본문:\n{{ $('1개 Limit').item.json.content }}\n\n위 뉴스를 요약해 주세요."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        304,
+        288
+      ],
+      "id": "abaadd10-d804-4f67-ba2b-e8d5e5647c05",
+      "name": "뉴스 요약 LLM",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "credentials": {
+        "openAiApi": {
+          "id": "VZ4QmhOTnSLWaeen",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "38580582-f426-8063-982f-eaa1c46272e5",
+          "mode": "list",
+          "cachedResultName": "AI 뉴스 수집 DB",
+          "cachedResultUrl": "https://app.notion.com/p/38580582f4268063982feaa1c46272e5"
+        },
+        "title": "=",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "제목|title",
+              "title": "={{ $('1개 Limit').item.json.title }}"
+            },
+            {
+              "key": "요약|rich_text",
+              "textContent": "={{ $('뉴스 요약 LLM').item.json.output[0].content[0].text }}"
+            },
+            {
+              "key": "원문 링크|url",
+              "urlValue": "={{ $('1개 Limit').item.json.link }}"
+            },
+            {
+              "key": "발행일|date",
+              "date": "={{ $('1개 Limit').item.json.pubDate }}"
+            },
+            {
+              "key": "수집일|date",
+              "date": "={{ $('뉴스 수집 스케줄러').item.json.timestamp }}"
+            },
+            {
+              "key": "출처|rich_text",
+              "textContent": "={{ $('1개 Limit').item.json.link }}"
+            },
+            {
+              "key": "GUID|rich_text",
+              "textContent": "="
+            },
+            {
+              "key": "감성 태그|select",
+              "selectValue": "={{ $json.output[0].content[0].text }}"
+            },
+            {
+              "key": "이미지|url",
+              "ignoreIfEmpty": true,
+              "urlValue": "="
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        768,
+        288
+      ],
+      "id": "18681c27-18a7-4d88-9ad2-fa73c31c339b",
+      "name": "DB Page 생성",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "credentials": {
+        "notionApi": {
+          "id": "n8QisCZzdXAoSjVb",
+          "name": "Notion account 2"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1104,
+        272
+      ],
+      "id": "736b3393-b727-4378-8887-0e0dd7ca7892",
+      "name": "성공 (그냥 패스)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\n// ⭐ 원하는 키워드 미리 정의 (여기서 수정하면 돼!)\nconst targetKeywords = [\n  'AI', '인공지능', 'LLM', 'ChatGPT', '챗GPT',\n  '딥러닝', '머신러닝', '생성형', '클로드', 'Claude',\n  '반도체', '엔비디아', 'GPU', 'OpenAI', '구글',\n  '챗봇', '자율주행', '로봇', '데이터센터', 'GPT'\n];\n\n// 각 기사에서 키워드 몇 개 포함되는지 카운트\nconst scoredItems = items.map(item => {\n  const title = item.json.title || '';\n  const content = item.json.contentSnippet || '';\n  const text = title + ' ' + content;\n  \n  // 포함된 키워드 목록\n  const matchedKeywords = targetKeywords.filter(kw => \n    text.includes(kw)\n  );\n  \n  return {\n    ...item.json,\n    matchedKeywords: matchedKeywords,\n    score: matchedKeywords.length  // 키워드 많이 포함될수록 높은 점수\n  };\n});\n\n// AI 관련 기사만 필터링 (키워드 1개 이상 포함)\nconst aiItems = scoredItems.filter(item => item.score > 0);\n\nif (aiItems.length === 0) {\n  // AI 관련 기사 없으면 전체에서 첫 번째\n  return [{ json: { ...items[0].json, matchedKeywords: [], score: 0, topKeyword: '없음' } }];\n}\n\n// 점수 높은 순으로 정렬 → 1개 선택\naiItems.sort((a, b) => b.score - a.score);\nconst selected = aiItems[0];\n\nreturn [{\n  json: {\n    ...selected,\n    topKeyword: selected.matchedKeywords[0] || '없음'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        -48
+      ],
+      "id": "b9b8233e-893c-4656-92c0-6d4f6584fbcf",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "If": {
+      "main": [
+        [],
+        [
+          {
+            "node": "뉴스 요약 LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "뉴스 수집 스케줄러": {
+      "main": [
+        [
+          {
+            "node": "SBS RSS",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "동아 RSS",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "연합뉴스 RSS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "연합뉴스 RSS": {
+      "main": [
+        [
+          {
+            "node": "병합(Merge)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "동아 RSS": {
+      "main": [
+        [
+          {
+            "node": "병합(Merge)",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "SBS RSS": {
+      "main": [
+        [
+          {
+            "node": "병합(Merge)",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "병합(Merge)": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "뉴스 DB 조회": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "뉴스 요약 LLM": {
+      "main": [
+        [
+          {
+            "node": "DB Page 생성",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB Page 생성": {
+      "main": [
+        [
+          {
+            "node": "성공 (그냥 패스)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "뉴스 DB 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "72bac5ac-3a62-4941-9bea-f3064cbf089b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "fcad09a0fe1189f022801a522dde92a3e3df91a415fb6738ab0400ee4b105773"
+  },
+  "nodeGroups": [],
+  "id": "K82p378ijdGVNTKv",
+  "tags": [
+    {
+      "updatedAt": "2026-06-25T07:52:18.978Z",
+      "createdAt": "2026-06-25T07:52:18.978Z",
+      "id": "pQHwLJEO1UtBO8uy",
+      "name": "team-project"
+    },
+    {
+      "updatedAt": "2026-06-25T07:52:19.008Z",
+      "createdAt": "2026-06-25T07:52:19.008Z",
+      "id": "K1Sa3AwQY8YdA9RD",
+      "name": "production"
+    }
+  ]
+}
